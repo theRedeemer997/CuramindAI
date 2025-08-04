@@ -99,3 +99,14 @@ This tool can assist:
 - Integrate with a Streamlit interface for live coding
 - Improve matching using BERT-based embeddings
 
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License**.
+
+You are free to use, modify, and distribute this software in personal, academic, or commercial projects, provided that the original license and copyright notice are included.
+
+See the [LICENSE](./LICENSE) file for full details.
+
+
