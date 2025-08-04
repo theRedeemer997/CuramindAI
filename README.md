@@ -95,8 +95,8 @@ This tool can assist:
 
 ## 📌 Future Enhancements
 
-- Add support for ICD-10-PCS (Procedure Coding System)
-- Integrate with a Streamlit interface for live coding
+- Add support for ICD-10-PCS (Procedure Coding System) ✅
+- Integrate with a Streamlit interface for live coding ✅
 - Improve matching using BERT-based embeddings
 
 ---
