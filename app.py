@@ -64,7 +64,7 @@ with tab2:
                 st.warning("Please enter a diagnosis description to find matches.")
             else:
                 with st.spinner("🔄 Processing diagnosis and finding best match..."):
-                    df_ccsr = pd.read_csv("./data/cleaned_medical_dataset.csv")
+                    df_ccsr = pd.read_csv("./data/ccsr/cleaned_medical_dataset.csv")
                     df_ccsr = preprocess_dataframe(df_ccsr, 'CCSR Diagnosis Description')
                     vectorizer, tfidf_matrix = create_tfidf_matrix(df_ccsr['CCSR Diagnosis Description'])
                     df_ccsr = compute_self_similarity(df_ccsr, 'CCSR Diagnosis Description', 'CCSR Diagnosis Code', tfidf_matrix)
