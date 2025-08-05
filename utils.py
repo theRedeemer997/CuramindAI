@@ -41,7 +41,7 @@ def compute_metrics(y_true, y_pred):
     return accuracy, precision, recall, f1
 
 # Perform single user input match
-def match_user_input(user_input, vectorizer, tfidf_matrix, df, description_col, code_col, cost_col, threshold=0.5):
+def match_user_input(user_input, vectorizer, tfidf_matrix, df, description_col, code_col, cost_col, flag, threshold=0.5):
     # transform the user input into vector
     query_vec = vectorizer.transform([user_input])
     # calculate cosine similarity between the user input vector and the TF-IDF matrix and return the similarity scores for matching row
@@ -56,14 +56,16 @@ def match_user_input(user_input, vectorizer, tfidf_matrix, df, description_col, 
 
     top_match = df.iloc[top_idx][description_col]
     top_code = df.iloc[top_idx][code_col]
-    top_cost = df.iloc[top_idx][cost_col]
-    return top_match, top_code, top_cost, top_score
+    if flag == 'CCSR':
+        top_cost = df.iloc[top_idx][cost_col]
+        return top_match, top_code, top_cost, top_score
+    else:return top_match, top_code, None, top_score
 
 # ICD Support 
 
-def match_icd_description(user_input, icd_df, desc_col='SHORT DESCRIPTION (VALID ICD-10 FY2025)', code_col='CODE', threshold=0.5):
+def match_icd_description(user_input,desc_col='SHORT DESCRIPTION (VALID ICD-10 FY2025)', code_col='CODE', threshold=0.5):
     icd_df = pd.read_excel("./data/icd/icd.xlsx")
     icd_df = icd_df.drop("NF EXCL", axis=1)
     vectorizer, tfidf_matrix = create_tfidf_matrix(icd_df[desc_col])
-    return match_user_input(user_input, vectorizer, tfidf_matrix, icd_df, desc_col, code_col, cost_col=None, threshold=threshold)
+    return match_user_input(user_input, vectorizer, tfidf_matrix, icd_df, desc_col, code_col, cost_col=None, threshold=threshold, flag="ICD")
 
