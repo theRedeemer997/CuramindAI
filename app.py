@@ -24,11 +24,12 @@ with tab1:
 with tabC:
     uploaded_file = st.file_uploader("📂 Upload Cleaned Diagnosis CSV", type=["csv"])
     if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-        st.success("✅ File loaded successfully")
-        if 'CCSR Diagnosis Description' not in df.columns or 'CCSR Diagnosis Code' not in df.columns:
-            st.error("❌ CSV must contain 'CCSR Diagnosis Description' and 'CCSR Diagnosis Code' columns.")
-            st.stop()
+        with st.spinner("🔄 Processing diagnosis and finding best match..."):
+            df = pd.read_csv(uploaded_file)
+            st.success("✅ File loaded successfully")
+            if 'CCSR Diagnosis Description' not in df.columns or 'CCSR Diagnosis Code' not in df.columns:
+                st.error("❌ CSV must contain 'CCSR Diagnosis Description' and 'CCSR Diagnosis Code' columns.")
+                st.stop()
 
         df = preprocess_dataframe(df, 'CCSR Diagnosis Description')
         st.info("🔄 Vectorizing diagnosis descriptions...")
@@ -140,7 +141,7 @@ with tab3:
         if icd_input.strip() == "":
             st.warning("Please enter a diagnosis description to find matches.")
         elif icd_input:
-            with st.spinner("🔄 Processing diagnosis and finding best match..."):
+            with st.spinner("🔄 Processing..."):
                 top_match, top_code, _, top_score = match_icd_description(icd_input)
                 if top_match is None:
                     st.warning(f"⚠️ No good match found. Highest similarity score: {top_score:.4f}")
