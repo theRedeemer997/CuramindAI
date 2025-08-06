@@ -1,8 +1,13 @@
 # Adding the necessary imports for utils.py
+import fitz  
+import docx
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
 
 # Cleaned and prepeared DataFrame
 def preprocess_dataframe(df, description_col):
@@ -62,10 +67,31 @@ def match_user_input(user_input, vectorizer, tfidf_matrix, df, description_col, 
     else:return top_match, top_code, None, top_score
 
 # ICD Support 
-
 def match_icd_description(user_input,desc_col='SHORT DESCRIPTION (VALID ICD-10 FY2025)', code_col='CODE', threshold=0.5):
     icd_df = pd.read_excel("./data/icd/icd.xlsx")
     icd_df = icd_df.drop("NF EXCL", axis=1)
     vectorizer, tfidf_matrix = create_tfidf_matrix(icd_df[desc_col])
     return match_user_input(user_input, vectorizer, tfidf_matrix, icd_df, desc_col, code_col, cost_col=None, threshold=threshold, flag="ICD")
+
+# Extract text from PDF and DOCX files
+def extract_text_from_pdf(file):
+    # Use fitz (PyMuPDF) to extract text from PDF
+    doc = fitz.open(stream=file.read(), filetype="pdf")
+    # Extract text from each para and join them into a single string
+    return " ".join(page.get_text() for page in doc)
+
+def extract_text_from_docx(file):
+    # Use python-docx to extract text from DOCX
+    doc = docx.Document(file)
+    # Extract text from each paragraph and join them into a single string
+    return " ".join(para.text for para in doc.paragraphs if para.text.strip())
+
+def extract_possible_diagnoses(text):
+    # Break big string into sentences
+    doc = nlp(text)
+    sentences = [sent.text.strip() for sent in doc.sents]
+    # Heuristic: filter sentences likely to be diagnoses
+    diagnosis_like = [s for s in sentences if 4 < len(s.split()) < 25]
+    return diagnosis_like
+
 

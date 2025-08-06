@@ -1,13 +1,15 @@
 import streamlit as st
 import pandas as pd
-import time
 from utils import (
     preprocess_dataframe,
     create_tfidf_matrix,
     compute_self_similarity,
     compute_metrics,
     match_user_input,
-    match_icd_description
+    match_icd_description,
+    extract_text_from_pdf,
+    extract_text_from_docx,
+    extract_possible_diagnoses
 )
 
 st.set_page_config(page_title="CuramindAI", layout="wide")
@@ -24,7 +26,6 @@ with tabC:
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
         st.success("✅ File loaded successfully")
-
         if 'CCSR Diagnosis Description' not in df.columns or 'CCSR Diagnosis Code' not in df.columns:
             st.error("❌ CSV must contain 'CCSR Diagnosis Description' and 'CCSR Diagnosis Code' columns.")
             st.stop()
@@ -68,7 +69,6 @@ with tab2:
                     df_ccsr = preprocess_dataframe(df_ccsr, 'CCSR Diagnosis Description')
                     vectorizer, tfidf_matrix = create_tfidf_matrix(df_ccsr['CCSR Diagnosis Description'])
                     df_ccsr = compute_self_similarity(df_ccsr, 'CCSR Diagnosis Description', 'CCSR Diagnosis Code', tfidf_matrix)
-
                     top_match, top_code, top_cost, top_score = match_user_input(
                         user_input, vectorizer, tfidf_matrix, df_ccsr,
                         'CCSR Diagnosis Description', 'CCSR Diagnosis Code', 'Total Costs',
@@ -81,6 +81,55 @@ with tab2:
                         st.markdown(f"**CCSR Code:** `{top_code}`")
                         st.markdown(f"**Similarity Score:** `{top_score:.4f}`")
                         st.markdown(f"**Estimated Cost:** ${top_cost:,.2f}")
+    st.subheader("📃 Try by Uploading the Diagnosis")
+    uploaded_file = st.file_uploader("Upload a document with embedded diagnoses", type=["pdf", "docx"], key="doc_match")
+    text = ""
+    if uploaded_file:
+        with st.spinner("🔄 Extracting text, processing diagnosis, and generating matches..."):
+            if uploaded_file.name.endswith(".pdf"):
+                text = extract_text_from_pdf(uploaded_file)
+            elif uploaded_file.name.endswith(".docx"):
+                text = extract_text_from_docx(uploaded_file)
+            else:
+                st.error("Unsupported file type. Please upload a PDF or DOCX file.")
+                st.stop()
+            print("Extracted text:", text, type(text))
+            diagnosis = extract_possible_diagnoses(text)
+            print("Extracted diagnoses:", diagnosis, len(diagnosis))
+            results = []
+            finalResults = []
+            df_ccsr = pd.read_csv("./data/ccsr/cleaned_medical_dataset.csv")
+            df_ccsr = preprocess_dataframe(df_ccsr, 'CCSR Diagnosis Description')
+            vectorizer, tfidf_matrix = create_tfidf_matrix(df_ccsr['CCSR Diagnosis Description'])
+            df_ccsr = compute_self_similarity(df_ccsr, 'CCSR Diagnosis Description', 'CCSR Diagnosis Code', tfidf_matrix)
+            for diagnosis in diagnosis:
+                top_match, top_code, top_cost, top_score = match_user_input(
+                    diagnosis, vectorizer, tfidf_matrix, df_ccsr,
+                    'CCSR Diagnosis Description', 'CCSR Diagnosis Code', 'Total Costs',
+                    threshold=0.5, flag="CCSR"
+                )
+                results.append({
+                    "Diagnosis": diagnosis,
+                    "Top Match": top_match,
+                    "CCSR Code": top_code,
+                    "Similarity Score": top_score,
+                    "Estimated Cost": top_cost
+                })
+            if results:
+                results_df = pd.DataFrame(results)
+                # st.subheader("📋 Matched Results from Uploaded Document")
+                # st.dataframe(results_df)
+                st.download_button("💾 Download Matched Results", results_df.to_csv(index=False), "matched_results.csv", "text/csv")
+                for res in results:
+                    finalResults.append({"Similarity Score": float(f"{res['Similarity Score']:.4f}")})
+                    if res.get("Similarity Score") > 0.5 and res.get("Top Match") is not None:
+                        st.markdown(f"**Diagnosis:** {res['Diagnosis']}")
+                        st.markdown(f"**Top Match:** {res['Top Match']}")
+                        st.markdown(f"**CCSR Code:** `{res['CCSR Code']}`")
+                        st.markdown(f"**Similarity Score:** `{res['Similarity Score']:.4f}`")
+                        st.markdown(f"**Estimated Cost:** ${res['Estimated Cost']:,.2f}")
+                        st.markdown("---")
+
 
 # ========== ICD TAB ==========
 
@@ -101,3 +150,5 @@ with tab3:
                     st.markdown(f"**Similarity Score:** `{top_score:.4f}`")
         else:
             st.warning("Please enter a diagnosis description.")
+    st.subheader("📃 Try by Uploading the Diagnosis")
+    uploaded_file = st.file_uploader("Upload a document with embedded diagnoses", type=["pdf", "docx"], key="doc_match_icd")
